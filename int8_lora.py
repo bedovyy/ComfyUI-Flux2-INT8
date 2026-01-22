@@ -20,7 +20,7 @@ class INT8LoraLoader:
                 "model": ("MODEL",),
                 "lora_name": (folder_paths.get_filename_list("loras"),),
                 "strength": ("FLOAT", {"default": 1.0, "min": -10.0, "max": 10.0, "step": 0.01}),
-                "seed": ("INT", {"default": 0, "min": 0, "max": 0xffffffff}),
+                #"seed": ("INT", {"default": 0, "min": 0, "max": 0xffffffff}),
             }
         }
 
@@ -81,7 +81,7 @@ class INT8LoraLoader:
                         adapter.loaded_keys, 
                         adapter.weights, 
                         w_scale,
-                        seed=seed
+                        seed=138008 #Empirically chosen best possible seed.
                     )
                     final_patch_dict[key] = new_adapter
                     applied_count += 1
