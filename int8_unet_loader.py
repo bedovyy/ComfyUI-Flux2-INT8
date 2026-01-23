@@ -21,7 +21,7 @@ class UNetLoaderINTW8A8:
             "required": {
                 "unet_name": (folder_paths.get_filename_list("diffusion_models"),),
                 "weight_dtype": (["default", "fp8_e4m3fn", "fp16", "bf16"],),
-                "model_type": (["flux2","z-image","chroma", "wan", "ltx2"],),
+                "model_type": (["flux2", "z-image", "chroma", "wan", "ltx2", "qwen"],),
             }
         }
 
@@ -40,8 +40,9 @@ class UNetLoaderINTW8A8:
         # ComfyUI loads metadata before the full model
         from comfy.sd import load_diffusion_model
         
-        # Reset exclusions (in case this is the second load)
+        # Reset exclusions and pre-quantization flag (in case this is the second load)
         Int8TensorwiseOps.excluded_names = []
+        Int8TensorwiseOps._is_prequantized = None
         
         # Check explicit model_type for exclusions
         if model_type == "flux2":
@@ -53,13 +54,17 @@ class UNetLoaderINTW8A8:
         elif model_type == "z-image":
             Int8TensorwiseOps.excluded_names = [
                 'cap_embedder', 't_embedder', 'x_embedder', 'cap_pad_token', 'context_refiner', 
-                'final_layer', 'noise_refiner', 
+                'final_layer', 'noise_refiner', 'adaLN',
                 'x_pad_token',
             ]
         elif model_type == "chroma":
             Int8TensorwiseOps.excluded_names = [
                 'distilled_guidance_layer', 'final_layer', 'img_in', 'txt_in', 'nerf_image_embedder',
                  'nerf_blocks', 'nerf_final_layer_conv', '__x0__', 'nerf_final_layer_conv',
+            ]
+        elif model_type == "qwen":
+            Int8TensorwiseOps.excluded_names = [
+                'time_text_embed', 'img_in', 'norm_out', 'proj_out', 'txt_in'
             ]
         elif model_type == "wan":
             Int8TensorwiseOps.excluded_names = [

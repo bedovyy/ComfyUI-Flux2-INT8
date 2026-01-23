@@ -402,6 +402,7 @@ if _COMFY_OPS_AVAILABLE:
         Custom ComfyUI operations for INT8 tensorwise quantization.
         """
         excluded_names = []
+        _is_prequantized = None # Global flag for current load
         
         class Linear(manual_cast.Linear):
             def __init__(self, *args, **kwargs):
@@ -434,6 +435,7 @@ if _COMFY_OPS_AVAILABLE:
                         # Load Quantized
                         self._is_quantized = True
                         self.weight = nn.Parameter(weight_tensor, requires_grad=False)
+                        Int8TensorwiseOps._is_prequantized = True # Found a quantized layer
                         
                         if isinstance(weight_scale, torch.Tensor):
                             self.weight_scale = weight_scale.float().item() if weight_scale.numel() == 1 else weight_scale.float()
@@ -442,17 +444,38 @@ if _COMFY_OPS_AVAILABLE:
                             
                     elif weight_tensor.dtype in (torch.float16, torch.bfloat16, torch.float32):
                         # Load High-Precision
+                        # Detect if the model is pre-quantized if we don't know yet
+                        if Int8TensorwiseOps._is_prequantized is None:
+                            # Robust detection: scan keys and a sample of values
+                            is_prequant = False
+                            for k in state_dict.keys():
+                                if "weight_scale" in k or "comfy_quant" in k:
+                                    is_prequant = True
+                                    break
+                            
+                            if not is_prequant:
+                                # Fallback: scan a sample of values for int8 tensors
+                                for i, v in enumerate(state_dict.values()):
+                                    if i > 200: break # Safety limit
+                                    if getattr(v, "dtype", None) == torch.int8:
+                                        is_prequant = True
+                                        break
+                            Int8TensorwiseOps._is_prequantized = is_prequant
+
                         is_excluded = any(ex in prefix for ex in Int8TensorwiseOps.excluded_names)
                         is_dim1 = self.in_features == 1 or self.out_features == 1 or weight_tensor.ndim == 1
                         
-                        if is_excluded or is_dim1:
+                        if is_excluded or is_dim1 or Int8TensorwiseOps._is_prequantized:
                             self._is_quantized = False
                             self.weight = nn.Parameter(weight_tensor, requires_grad=False)
+                            #print("Not quantizing", prefix)
                         else:
                             # Quantize on the fly
+                            # We seriously need to avoid doing this when loading a prequantized model
                             device = torch.device("cuda") if torch.cuda.is_available() else weight_tensor.device
                             w_gpu = weight_tensor.to(device, non_blocking=True)
                             q_weight, q_scale = quantize_int8_tensorwise(w_gpu)
+                            #print("Quantizing", prefix)
                             
                             self.weight = nn.Parameter(q_weight.cpu(), requires_grad=False)
                             self.weight_scale = q_scale.cpu() if isinstance(q_scale, torch.Tensor) else q_scale
