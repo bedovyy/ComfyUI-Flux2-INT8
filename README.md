@@ -1,6 +1,6 @@
 # Flux2 INT8 Acceleration
 
-This node speeds up Flux2 in ComfyUI by using INT8 quantization, delivering ~2x faster inference on my 3090, but it should work on any NVIDIA GPU with enough INT8 TOPS. It's unlikely to be faster than proper FP8 on 40-Series and above. 
+This node speeds up Flux2, Chroma, Z-Image in ComfyUI by using INT8 quantization, delivering ~2x faster inference on my 3090, but it should work on any NVIDIA GPU with enough INT8 TOPS. It's unlikely to be faster than proper FP8 on 40-Series and above. 
 Works with lora*, torch compile (needed to get full speedup).
 
 *LoRAs need to be applied using one of the following methods:
@@ -24,6 +24,9 @@ We auto-convert flux2 klein to INT8 on load if needed. Pre-quantized checkpoints
 https://huggingface.co/bertbobson/FLUX.2-klein-9B-INT8-Comfy
 
 https://huggingface.co/bertbobson/Chroma1-HD-INT8Tensorwise
+
+https://huggingface.co/bertbobson/Z-Image-Turbo-INT8-Tensorwise
+
 
 # Metrics:
 
